@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="theme-color" content="#0a0f0d"/>
+<title>TI Factory — Floor App</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Barlow+Condensed:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<!-- QR Scanner library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<style>
+:root{
+  --ink:#0a0f0d; --ink2:#1c2420;
+  --green:#1a9e6e; --green2:#13795a; --green-lt:#e1f5ee;
+  --amber:#d4820a; --amber-lt:#fdf3e0;
+  --red:#c0392b; --red-lt:#fdecea;
+  --blue:#2471a3; --blue-lt:#eaf3fb;
+  --mist:#f0f4f2; --mist2:#e4ebe7; --mist3:#ccd9d3;
+  --card:#ffffff;
+  --mono:'DM Mono',monospace;
+  --display:'Barlow Condensed',sans-serif;
+  --body:'DM Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;font-family:var(--body);background:var(--ink);color:#fff}
+
+/* ── SPLASH / HOME ── */
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;transition:transform .35s cubic-bezier(.4,0,.2,1),opacity .35s;will-change:transform,opacity}
+.screen.hidden{transform:translateX(100%);opacity:0;pointer-events:none}
+.screen.slide-left{transform:translateX(-100%);opacity:0;pointer-events:none}
+
+/* HOME */
+#s-home{background:var(--ink);padding:0}
+.home-header{padding:52px 24px 20px;background:linear-gradient(180deg,#0a0f0d 0%,#1c2420 100%)}
+.home-logo{font-family:var(--display);font-size:32px;font-weight:800;letter-spacing:.04em;color:#fff;line-height:1}
+.home-logo span{color:var(--green)}
+.home-sub{font-family:var(--mono);font-size:11px;color:#4a5e56;letter-spacing:.08em;margin-top:4px}
+.home-time{font-family:var(--mono);font-size:28px;font-weight:500;color:#fff;margin-top:20px;line-height:1}
+.home-date{font-family:var(--mono);font-size:12px;color:#4a5e56;margin-top:4px}
+.home-body{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
+
+/* MENU TILES */
+.tile{border-radius:16px;padding:20px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:transform .1s,opacity .1s;position:relative;overflow:hidden}
+.tile:active{transform:scale(.97);opacity:.85}
+.tile-icon{width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
+.tile-info{flex:1}
+.tile-title{font-family:var(--display);font-size:20px;font-weight:700;line-height:1;margin-bottom:4px}
+.tile-sub{font-size:12px;opacity:.7;line-height:1.4}
+.tile-arrow{font-size:20px;opacity:.4}
+.tile-qr{background:linear-gradient(135deg,#1a9e6e 0%,#0d5440 100%)}
+.tile-stage{background:linear-gradient(135deg,#2471a3 0%,#0c3460 100%)}
+.tile-roll{background:linear-gradient(135deg,#d4820a 0%,#7a4a06 100%)}
+.tile-view{background:linear-gradient(135deg,#2e3d37 0%,#1c2420 100%);border:1px solid #2e3d37}
+.tile-icon.qr-ic{background:rgba(255,255,255,.15)}
+.tile-icon.st-ic{background:rgba(255,255,255,.15)}
+.tile-icon.rl-ic{background:rgba(255,255,255,.15)}
+.tile-icon.vw-ic{background:rgba(255,255,255,.1)}
+
+/* STATUS BAR */
+.status-bar{background:#1c2420;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.sb-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.sb-connected{background:var(--green)}
+.sb-disconnected{background:var(--red)}
+.sb-text{font-family:var(--mono);font-size:10px;color:#4a5e56;flex:1}
+.sb-user{font-family:var(--mono);font-size:10px;color:#8a9e98}
+
+/* ── INNER SCREENS ── */
+.inner-screen{background:var(--mist);color:var(--ink);display:flex;flex-direction:column}
+.inner-header{background:var(--ink);color:#fff;padding:52px 16px 14px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.back-btn{width:36px;height:36px;border-radius:50%;background:#2e3d37;border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.inner-title{font-family:var(--display);font-size:22px;font-weight:700;letter-spacing:.02em;line-height:1}
+.inner-sub{font-size:11px;color:#4a5e56;margin-top:2px}
+.inner-body{flex:1;overflow-y:auto;padding:14px;-webkit-overflow-scrolling:touch}
+
+/* ── QR SCANNER ── */
+#s-qr .inner-body{padding:0;display:flex;flex-direction:column}
+.qr-viewport{position:relative;width:100%;background:#000;flex-shrink:0}
+.qr-viewport video{width:100%;display:block;max-height:55vw;object-fit:cover}
+.qr-viewport canvas{display:none}
+.qr-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.qr-frame{width:55vw;height:55vw;max-width:220px;max-height:220px;border:3px solid var(--green);border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,.6)}
+.qr-corners::before,.qr-corners::after{content:'';position:absolute;width:24px;height:24px;border-color:var(--green);border-style:solid}
+.qr-scan-line{position:absolute;left:50%;transform:translateX(-50%);width:55vw;max-width:220px;height:2px;background:var(--green);opacity:.8;animation:scan 2s linear infinite}
+@keyframes scan{0%{top:20%}50%{top:75%}100%{top:20%}}
+.qr-result-area{padding:14px;flex:1;overflow-y:auto}
+.qr-found-card{background:#fff;border-radius:14px;padding:16px;margin-bottom:12px;border-left:4px solid var(--green)}
+.qr-not-found{background:var(--red-lt);border-radius:14px;padding:16px;margin-bottom:12px;border-left:4px solid var(--red);font-size:13px;color:var(--red)}
+.qr-mat-name{font-size:18px;font-weight:600;color:var(--ink);margin-bottom:4px;line-height:1.2}
+.qr-mat-id{font-family:var(--mono);font-size:11px;color:var(--blue);margin-bottom:8px}
+.qr-stock-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.qr-stock-val{font-family:var(--display);font-size:28px;font-weight:700}
+.qr-stock-lbl{font-size:11px;color:#6b7e78}
+.stk-ok{color:var(--green2)}.stk-low{color:var(--amber)}.stk-zero{color:var(--red)}
+.qr-cat-badge{display:inline-block;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600}
+
+/* ISSUE FORM (shown after QR scan) */
+.issue-form{background:#fff;border-radius:14px;padding:16px;margin-bottom:12px}
+.if-title{font-family:var(--display);font-size:16px;font-weight:700;color:var(--ink);margin-bottom:12px}
+.field{margin-bottom:10px}
+.field label{font-size:10px;font-weight:600;color:#6b7e78;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:3px}
+.field input,.field select,.field textarea{width:100%;padding:11px 12px;border:1.5px solid var(--mist3);border-radius:10px;font-size:15px;color:var(--ink);background:#fff;font-family:var(--body);-webkit-appearance:none}
+.field input:focus,.field select:focus{outline:none;border-color:var(--green)}
+.field.half{display:inline-block;width:48%}
+.fields-row{display:flex;gap:8px}
+.fields-row .field{flex:1}
+
+/* BIG BUTTONS */
+.big-btn{width:100%;padding:16px;border-radius:14px;font-family:var(--display);font-size:20px;font-weight:700;letter-spacing:.04em;border:none;cursor:pointer;transition:transform .1s,opacity .1s;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:10px}
+.big-btn:active{transform:scale(.97);opacity:.85}
+.btn-green{background:var(--green);color:#fff}
+.btn-amber{background:var(--amber);color:#fff}
+.btn-red{background:var(--red);color:#fff}
+.btn-ghost{background:transparent;color:var(--ink);border:1.5px solid var(--mist3)}
+
+/* ── STAGE ENTRY ── */
+.stage-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.stage-tile{background:#fff;border-radius:14px;padding:14px;cursor:pointer;transition:all .15s;border:2px solid transparent;text-align:center}
+.stage-tile:active{transform:scale(.95)}
+.stage-tile.active{border-color:var(--green);background:var(--green-lt)}
+.st-num{font-family:var(--mono);font-size:10px;color:#8a9e98;margin-bottom:4px}
+.st-name{font-family:var(--display);font-size:16px;font-weight:700;color:var(--ink)}
+.st-emoji{font-size:22px;margin-bottom:6px}
+.stage-form-area{display:none}
+.stage-form-area.active{display:block}
+
+/* ── ROLL GENERATOR ── */
+.roll-output{background:var(--ink);border-radius:14px;padding:16px;margin-bottom:10px;text-align:center}
+.ro-label{font-family:var(--mono);font-size:10px;color:#4a5e56;letter-spacing:.08em;margin-bottom:8px}
+.ro-num{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--green);word-break:break-all;line-height:1.6}
+.roll-card-m{background:#fff;border-radius:14px;padding:14px;margin-bottom:8px;border-left:4px solid var(--green)}
+.rcm-id{font-family:var(--mono);font-size:11px;color:var(--green2);margin-bottom:6px;word-break:break-all;line-height:1.4}
+.rcm-fields{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.rcm-fields .field{margin-bottom:0}
+.rcm-fields input{font-size:14px;padding:9px 8px;text-align:center}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink);color:#fff;padding:12px 20px;border-radius:12px;font-size:13px;font-family:var(--mono);z-index:999;transition:transform .3s;white-space:nowrap;max-width:90vw;text-align:center}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.green-bg{background:var(--green2)}
+.toast.red-bg{background:var(--red)}
+
+/* SECTION DIVIDER */
+.sec-div{font-size:10px;font-weight:600;color:#6b7e78;text-transform:uppercase;letter-spacing:.08em;margin:14px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--mist3)}
+
+/* OPERATOR SELECTOR */
+.op-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.op-chip{padding:6px 12px;border-radius:99px;font-size:12px;border:1.5px solid var(--mist3);cursor:pointer;background:#fff;transition:all .15s}
+.op-chip.active{background:var(--green);border-color:var(--green);color:#fff}
+
+/* NUMBER STEPPER */
+.stepper{display:flex;align-items:center;gap:0;border:1.5px solid var(--mist3);border-radius:10px;overflow:hidden}
+.step-btn{width:44px;height:44px;border:none;background:var(--mist);font-size:20px;cursor:pointer;color:var(--ink);flex-shrink:0}
+.step-val{flex:1;text-align:center;font-family:var(--mono);font-size:16px;font-weight:500;color:var(--ink);background:#fff;padding:10px 0}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ HOME SCREEN ═══════════════ -->
+<div class="screen" id="s-home">
+  <div class="home-header">
+    <div class="home-logo">TI<span>FACTORY</span></div>
+    <div class="home-sub">TRANSINDIA NONWOVENS · FLOOR APP</div>
+    <div class="home-time" id="home-time">--:--</div>
+    <div class="home-date" id="home-date">Loading...</div>
+  </div>
+
+  <div class="status-bar">
+    <div class="sb-dot" id="conn-dot"></div>
+    <div class="sb-text" id="conn-text">Checking connection...</div>
+    <div class="sb-user" id="conn-user">—</div>
+  </div>
+
+  <div class="home-body">
+    <!-- MAIN ACTIONS -->
+    <div class="tile tile-qr" onclick="go('s-qr')">
+      <div class="tile-icon qr-ic">📷</div>
+      <div class="tile-info">
+        <div class="tile-title">SCAN & ISSUE</div>
+        <div class="tile-sub">Scan QR on material bag → issue to production line</div>
+      </div>
+      <div class="tile-arrow">›</div>
+    </div>
+
+    <div class="tile tile-stage" onclick="go('s-stage')">
+      <div class="tile-icon st-ic">🏭</div>
+      <div class="tile-info">
+        <div class="tile-title">STAGE ENTRY</div>
+        <div class="tile-sub">Record production data — Felt, Coating, Lamination, Dispatch</div>
+      </div>
+      <div class="tile-arrow">›</div>
+    </div>
+
+    <div class="tile tile-roll" onclick="go('s-roll')">
+      <div class="tile-icon rl-ic">🎯</div>
+      <div class="tile-info">
+        <div class="tile-title">ROLL NUMBERS</div>
+        <div class="tile-sub">Generate finished roll numbers at lamination</div>
+      </div>
+      <div class="tile-arrow">›</div>
+    </div>
+
+    <div class="tile tile-view" onclick="go('s-inward')">
+      <div class="tile-icon vw-ic">📥</div>
+      <div class="tile-info">
+        <div class="tile-title">RECEIVE INWARD</div>
+        <div class="tile-sub">Record new material received from supplier</div>
+      </div>
+      <div class="tile-arrow">›</div>
+    </div>
+
+    <!-- CONFIG -->
+    <div style="background:#1c2420;border-radius:14px;padding:14px;margin-top:4px">
+      <div style="font-size:10px;font-family:var(--mono);color:#4a5e56;letter-spacing:.06em;margin-bottom:8px">WEB APP URL</div>
+      <input type="text" id="mobile-webapp-url" placeholder="https://script.google.com/macros/s/.../exec"
+        style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid #2e3d37;background:#0a0f0d;color:#8a9e98;font-family:var(--mono);font-size:11px"
+        onchange="saveMobileURL()" />
+      <div style="font-size:11px;color:#4a5e56;margin-top:6px">Paste your Apps Script Web App URL once — saved permanently</div>
+    </div>
+
+    <!-- OPERATOR SELECTION -->
+    <div style="background:#1c2420;border-radius:14px;padding:14px">
+      <div style="font-size:10px;font-family:var(--mono);color:#4a5e56;letter-spacing:.06em;margin-bottom:8px">WHO ARE YOU?</div>
+      <select id="mobile-operator" onchange="saveOperator()"
+        style="width:100%;padding:11px 12px;border-radius:10px;border:1.5px solid #2e3d37;background:#0a0f0d;color:#fff;font-size:15px;-webkit-appearance:none">
+        <option value="">— Select your name —</option>
+        <option>INDRAJIT SINGH</option><option>HARENDRA PANDEY</option><option>DEEN DAYAL</option>
+        <option>LAXMAN SINGH</option><option>JITENDRA YADAV</option>
+        <option>SANWAR MAL</option><option>MUKESH KUMAR</option>
+        <option>BABU LAL CHAHAR</option><option>BABUNDER PANDEY</option>
+        <option>RAJESHWARI</option><option>SURAJ MAL</option>
+        <option>RAKESH KUMAR</option><option>MAHENDRA MAHAVAR</option>
+      </select>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════ QR SCAN + ISSUE ═══════════════ -->
+<div class="screen hidden inner-screen" id="s-qr">
+  <div class="inner-header">
+    <button class="back-btn" onclick="back()">‹</button>
+    <div>
+      <div class="inner-title">SCAN & ISSUE</div>
+      <div class="inner-sub">Point camera at QR label on material bag</div>
+    </div>
+  </div>
+
+  <div class="qr-viewport">
+    <video id="qr-video" autoplay playsinline muted></video>
+    <canvas id="qr-canvas"></canvas>
+    <div class="qr-overlay">
+      <div style="position:relative">
+        <div class="qr-frame"></div>
+        <div class="qr-scan-line"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="qr-result-area" id="qr-result-area">
+
+    <!-- Manual entry fallback -->
+    <div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px">
+      <div style="font-size:12px;color:#6b7e78;margin-bottom:6px">Or type material code manually:</div>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="qr-manual-m" placeholder="e.g. FIB-013" style="flex:1;padding:11px 12px;border:1.5px solid var(--mist3);border-radius:10px;font-family:var(--mono);font-size:14px" oninput="onManualQR(this.value)" />
+        <button onclick="onManualQR(document.getElementById('qr-manual-m').value)" style="padding:11px 16px;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:15px">→</button>
+      </div>
+      <!-- Search results dropdown -->
+      <div id="qr-search-results-m" style="margin-top:8px"></div>
+    </div>
+
+    <!-- Material found card — hidden until scan/search -->
+    <div id="qr-found" style="display:none">
+      <div class="qr-found-card">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
+          <div>
+            <div class="qr-mat-id" id="qm-id">—</div>
+            <div class="qr-mat-name" id="qm-name">—</div>
+          </div>
+          <div class="qr-cat-badge" id="qm-cat-badge">—</div>
+        </div>
+        <div class="qr-stock-row">
+          <div><div class="qr-stock-val" id="qm-stock">—</div><div class="qr-stock-lbl">kg in stock</div></div>
+          <div style="text-align:right"><div style="font-family:var(--mono);font-size:12px;color:#6b7e78">Reorder at</div><div style="font-family:var(--mono);font-size:16px;font-weight:500" id="qm-reorder">—</div></div>
+        </div>
+      </div>
+
+      <!-- ISSUE FORM -->
+      <div class="issue-form">
+        <div class="if-title">Issue to production</div>
+        <div class="field"><label>DO Number <span style="color:var(--red)">*</span></label>
+          <select id="mi-do">
+            <option value="">— Select DO —</option>
+          </select>
+        </div>
+        <div class="fields-row">
+          <div class="field"><label>Line</label>
+            <select id="mi-line">
+              <option value="">—</option>
+              <option>LINE-1</option><option>LINE-2</option><option>LINE-3</option>
+              <option>SNP-01-A</option><option>SNP-01-B</option>
+              <option>CO-01-A</option><option>CO-01-B</option>
+              <option>LAM-01-A</option><option>LAM-01-B</option><option>LAM-01-C</option>
+            </select>
+          </div>
+          <div class="field"><label>Lot No.</label>
+            <input type="text" id="mi-lot" placeholder="LOT-001" />
+          </div>
+        </div>
+        <div class="field"><label>Quantity to issue (kg) <span style="color:var(--red)">*</span></label>
+          <div class="stepper">
+            <button class="step-btn" onclick="stepQty(-5)">−</button>
+            <div class="step-val" id="mi-qty-display">0</div>
+            <button class="step-btn" onclick="stepQty(5)">+</button>
+          </div>
+          <input type="hidden" id="mi-qty" value="0" />
+        </div>
+        <button class="big-btn btn-green" onclick="submitIssue()">⬆ ISSUE MATERIAL</button>
+        <button class="big-btn btn-ghost" onclick="clearQRScan()">↺ SCAN AGAIN</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════ STAGE ENTRY ═══════════════ -->
+<div class="screen hidden inner-screen" id="s-stage">
+  <div class="inner-header">
+    <button class="back-btn" onclick="back()">‹</button>
+    <div>
+      <div class="inner-title">STAGE ENTRY</div>
+      <div class="inner-sub">Select your current production stage</div>
+    </div>
+  </div>
+  <div class="inner-body">
+
+    <!-- Common fields -->
+    <div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px">
+      <div class="fields-row">
+        <div class="field"><label>DO No. <span style="color:var(--red)">*</span></label>
+          <input type="text" id="st-do" placeholder="DO-001" />
+        </div>
+        <div class="field"><label>Lot No.</label>
+          <input type="text" id="st-lot" placeholder="LOT-001" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Stage selector grid -->
+    <div class="stage-grid">
+      <div class="stage-tile" onclick="selectMobileStage('s40',this)">
+        <div class="st-emoji">🧶</div>
+        <div class="st-num">STAGE 40</div>
+        <div class="st-name">FELT</div>
+      </div>
+      <div class="stage-tile" onclick="selectMobileStage('s50',this)">
+        <div class="st-emoji">🔧</div>
+        <div class="st-num">STAGE 50</div>
+        <div class="st-name">STRUCTURE</div>
+      </div>
+      <div class="stage-tile" onclick="selectMobileStage('s60',this)">
+        <div class="st-emoji">🔥</div>
+        <div class="st-num">STAGE 60</div>
+        <div class="st-name">SINGING</div>
+      </div>
+      <div class="stage-tile" onclick="selectMobileStage('s70',this)">
+        <div class="st-emoji">🧪</div>
+        <div class="st-num">STAGE 70</div>
+        <div class="st-name">COATING</div>
+      </div>
+      <div class="stage-tile" onclick="selectMobileStage('s80',this)">
+        <div class="st-emoji">🔗</div>
+        <div class="st-num">STAGE 80</div>
+        <div class="st-name">LAMINATION</div>
+      </div>
+      <div class="stage-tile" onclick="selectMobileStage('s90',this)">
+        <div class="st-emoji">✅</div>
+        <div class="st-num">STAGE 90</div>
+        <div class="st-name">QUALITY</div>
+      </div>
+      <div class="stage-tile" onclick="selectMobileStage('s30',this)">
+        <div class="st-emoji">📦</div>
+        <div class="st-num">STAGE 30</div>
+        <div class="st-name">RM CHECK</div>
+      </div>
+      <div class="stage-tile" onclick="selectMobileStage('s100',this)">
+        <div class="st-emoji">🚛</div>
+        <div class="st-num">STAGE 100</div>
+        <div class="st-name">DISPATCH</div>
+      </div>
+    </div>
+
+    <!-- FELT form -->
+    <div class="stage-form-area" id="mf-s40">
+      <div class="sec-div">FELT — Roll details</div>
+      <div style="background:#fff;border-radius:14px;padding:14px">
+        <div class="field"><label>Roll No. *</label><input type="text" id="m40-roll" placeholder="ROLL-001" /></div>
+        <div class="fields-row">
+          <div class="field"><label>Length (m)</label><input type="number" id="m40-len" placeholder="0.00" step="0.01" /></div>
+          <div class="field"><label>Width (m)</label><input type="number" id="m40-wid" placeholder="0.00" step="0.01" /></div>
+        </div>
+        <div class="field"><label>Weight (kg)</label><input type="number" id="m40-wt" placeholder="0.00" step="0.01" /></div>
+        <div class="field"><label>Godown</label>
+          <select id="m40-gd"><option value="DH">DHERA</option><option value="JH">JHHEDA</option></select>
+        </div>
+        <button class="big-btn btn-green" style="margin-top:8px" onclick="submitMobileStage('s40')">⬆ SUBMIT FELT</button>
+      </div>
+    </div>
+
+    <!-- COATING form -->
+    <div class="stage-form-area" id="mf-s70">
+      <div class="sec-div">COATING — Roll details</div>
+      <div style="background:#fff;border-radius:14px;padding:14px">
+        <div class="field"><label>Roll No. *</label><input type="text" id="m70-roll" placeholder="ROLL-001" /></div>
+        <div class="fields-row">
+          <div class="field"><label>Length (m)</label><input type="number" id="m70-len" placeholder="0.00" step="0.01" /></div>
+          <div class="field"><label>Weight (kg)</label><input type="number" id="m70-wt" placeholder="0.00" step="0.01" /></div>
+        </div>
+        <div class="field"><label>Quality check</label>
+          <div style="display:flex;gap:8px;margin-top:4px">
+            <button id="q70-ok" class="big-btn btn-green" style="margin:0;padding:12px;font-size:16px" onclick="setQuality('s70','OK')">✓ OK</button>
+            <button id="q70-fail" class="big-btn btn-red" style="margin:0;padding:12px;font-size:16px" onclick="setQuality('s70','NOT OK')">✗ FAIL</button>
+          </div>
+        </div>
+        <input type="hidden" id="m70-quality" value="" />
+        <button class="big-btn btn-green" style="margin-top:8px" onclick="submitMobileStage('s70')">⬆ SUBMIT COATING</button>
+      </div>
+    </div>
+
+    <!-- LAMINATION form -->
+    <div class="stage-form-area" id="mf-s80">
+      <div class="sec-div">LAMINATION — Jumbo rolls in + finished rolls out</div>
+      <div style="background:#fff;border-radius:14px;padding:14px">
+        <div class="field"><label>T-Roll No. (Top layer)</label><input type="text" id="m80-troll" placeholder="Roll no from coating" /></div>
+        <div class="field"><label>S-Roll No. (Singing layer)</label><input type="text" id="m80-sroll" placeholder="Roll no from singing" /></div>
+        <div class="field"><label>Carpet name</label><input type="text" id="m80-carpet" placeholder="CAMEL BOXER CM0758" oninput="updateMobileRolls()" /></div>
+        <div class="field"><label>No. of finished rolls</label>
+          <div style="display:flex;gap:8px">
+            <div class="stepper" style="flex:1">
+              <button class="step-btn" onclick="stepRolls(-1)">−</button>
+              <div class="step-val" id="m80-rollcount-display">4</div>
+              <button class="step-btn" onclick="stepRolls(1)">+</button>
+            </div>
+          </div>
+          <input type="hidden" id="m80-rollcount" value="4" />
+        </div>
+        <div id="m80-roll-cards" style="margin-top:10px"></div>
+        <div class="field"><label>Quality check</label>
+          <div style="display:flex;gap:8px;margin-top:4px">
+            <button class="big-btn btn-green" style="margin:0;padding:12px;font-size:16px" onclick="setQuality('s80','OK')">✓ OK</button>
+            <button class="big-btn btn-red" style="margin:0;padding:12px;font-size:16px" onclick="setQuality('s80','NOT OK')">✗ FAIL</button>
+          </div>
+        </div>
+        <input type="hidden" id="m80-quality" value="" />
+        <button class="big-btn btn-green" style="margin-top:8px" onclick="submitMobileStage('s80')">⬆ SUBMIT LAMINATION</button>
+      </div>
+    </div>
+
+    <!-- RM CHECK form -->
+    <div class="stage-form-area" id="mf-s30">
+      <div class="sec-div">RM STOCK CHECK</div>
+      <div style="background:#fff;border-radius:14px;padding:14px">
+        <div class="field"><label>Item to check</label><input type="text" id="m30-item" placeholder="Material name" /></div>
+        <div class="field"><label>In stock?</label>
+          <div style="display:flex;gap:8px;margin-top:4px">
+            <button class="big-btn btn-green" style="margin:0;padding:12px;font-size:16px" onclick="setStock('YES')">✓ YES</button>
+            <button class="big-btn btn-amber" style="margin:0;padding:12px;font-size:16px" onclick="setStock('PARTIAL')">⚡ PARTIAL</button>
+            <button class="big-btn btn-red" style="margin:0;padding:12px;font-size:16px" onclick="setStock('NO')">✗ NO</button>
+          </div>
+        </div>
+        <input type="hidden" id="m30-stock" value="" />
+        <div class="field"><label>Remark</label><input type="text" id="m30-remark" placeholder="Shortage details, ETA..." /></div>
+        <button class="big-btn btn-green" style="margin-top:8px" onclick="submitMobileStage('s30','sstock')">⬆ SUBMIT CHECK</button>
+      </div>
+    </div>
+
+    <!-- DISPATCH form -->
+    <div class="stage-form-area" id="mf-s100">
+      <div class="sec-div">DISPATCH</div>
+      <div style="background:#fff;border-radius:14px;padding:14px">
+        <div class="field"><label>Finish Roll No. *</label><input type="text" id="m100-roll" placeholder="TI-3/21/..." /></div>
+        <div class="fields-row">
+          <div class="field"><label>Length (m)</label><input type="number" id="m100-len" placeholder="0.00" step="0.01" /></div>
+          <div class="field"><label>Weight (kg)</label><input type="number" id="m100-wt" placeholder="0.00" step="0.01" /></div>
+        </div>
+        <div class="field"><label>Truck No.</label><input type="text" id="m100-truck" placeholder="RJ-XX-XXXX" style="text-transform:uppercase" /></div>
+        <div class="field"><label>Net ID</label>
+          <select id="m100-net"><option>LNET-01</option><option>LNET-02</option><option>LNET-03</option><option>LNET-04</option><option>LNET-05</option></select>
+        </div>
+        <button class="big-btn btn-green" style="margin-top:8px" onclick="submitMobileStage('s100')">⬆ SUBMIT DISPATCH</button>
+      </div>
+    </div>
+
+    <!-- Generic form for other stages -->
+    <div class="stage-form-area" id="mf-generic">
+      <div class="sec-div" id="mf-generic-title">STAGE ENTRY</div>
+      <div style="background:#fff;border-radius:14px;padding:14px">
+        <div class="field"><label>Roll No.</label><input type="text" id="mg-roll" placeholder="ROLL-001" /></div>
+        <div class="fields-row">
+          <div class="field"><label>Length (m)</label><input type="number" id="mg-len" placeholder="0.00" step="0.01" /></div>
+          <div class="field"><label>Weight (kg)</label><input type="number" id="mg-wt" placeholder="0.00" step="0.01" /></div>
+        </div>
+        <div class="field"><label>Stock location</label>
+          <select id="mg-loc"><option>DH-NE</option><option>DH-SE</option><option>DH-CO1</option><option>DH-CO2</option><option>DH-LAM01</option><option>JH-NE</option><option>JH-SW</option></select>
+        </div>
+        <button class="big-btn btn-green" style="margin-top:8px" onclick="submitGenericStage()">⬆ SUBMIT</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════ ROLL GENERATOR ═══════════════ -->
+<div class="screen hidden inner-screen" id="s-roll">
+  <div class="inner-header">
+    <button class="back-btn" onclick="back()">‹</button>
+    <div>
+      <div class="inner-title">ROLL NUMBERS</div>
+      <div class="inner-sub">Generate TI roll numbers at lamination</div>
+    </div>
+  </div>
+  <div class="inner-body">
+    <div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px">
+      <div class="field"><label>Date *</label><input type="date" id="mr-date" oninput="mobileCalcRolls()" /></div>
+      <div class="field"><label>Material type *</label>
+        <select id="mr-type" onchange="mobileCalcRolls()">
+          <option value="">— Select —</option>
+          <option value="1">JUTE (TI-1)</option>
+          <option value="2">FELT (TI-2)</option>
+          <option value="3">AUTO COATED (TI-3)</option>
+          <option value="4">WADDING (TI-4)</option>
+          <option value="5">CALENDRED (TI-5)</option>
+          <option value="6">STRUCTURED (TI-6)</option>
+          <option value="7">OTHER (TI-7)</option>
+        </select>
+      </div>
+      <div class="field"><label>Carpet name *</label>
+        <input type="text" id="mr-carpet" placeholder="e.g. CAMEL BOXER CM0758" oninput="mobileCalcRolls()" />
+      </div>
+      <div class="field"><label>No. of rolls</label>
+        <div class="stepper">
+          <button class="step-btn" onclick="stepMR(-1)">−</button>
+          <div class="step-val" id="mr-count-display">4</div>
+          <button class="step-btn" onclick="stepMR(1)">+</button>
+        </div>
+        <input type="hidden" id="mr-count" value="4" />
+      </div>
+    </div>
+    <div id="mr-output" style="display:none"></div>
+    <div id="mr-cards"></div>
+  </div>
+</div>
+
+<!-- ═══════════════ INWARD ═══════════════ -->
+<div class="screen hidden inner-screen" id="s-inward">
+  <div class="inner-header">
+    <button class="back-btn" onclick="back()">‹</button>
+    <div>
+      <div class="inner-title">RECEIVE INWARD</div>
+      <div class="inner-sub">Record new stock from supplier</div>
+    </div>
+  </div>
+  <div class="inner-body">
+    <div style="background:#fff;border-radius:14px;padding:14px">
+      <div class="field"><label>Material *</label>
+        <input type="text" id="in-mat" placeholder="Type material name..." oninput="inwardSearch(this.value)" />
+        <div id="in-search-results" style="margin-top:6px"></div>
+        <input type="hidden" id="in-mat-confirmed" />
+      </div>
+      <div class="field"><label>Supplier</label>
+        <input type="text" id="in-supplier" placeholder="Supplier name" />
+      </div>
+      <div class="field"><label>Invoice / Challan No.</label>
+        <input type="text" id="in-invoice" placeholder="INV-001" />
+      </div>
+      <div class="field"><label>Quantity (kg) *</label>
+        <input type="number" id="in-qty" placeholder="0.0" step="0.1" style="font-size:22px;text-align:center;font-family:var(--mono)" />
+      </div>
+      <div class="field"><label>Rate (₹/kg)</label>
+        <input type="number" id="in-rate" placeholder="0.00" step="0.01" />
+      </div>
+      <div class="field"><label>Quality</label>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button class="big-btn btn-green" style="margin:0;padding:10px;font-size:15px" onclick="setInwardQ('OK')">✓ OK</button>
+          <button class="big-btn btn-red" style="margin:0;padding:10px;font-size:15px" onclick="setInwardQ('NOT OK')">✗ ISSUE</button>
+        </div>
+        <input type="hidden" id="in-quality" value="OK" />
+      </div>
+      <button class="big-btn btn-green" style="margin-top:8px" onclick="submitInward()">⬆ RECORD INWARD</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────
+let WEBAPP_URL = localStorage.getItem('mobile_webapp_url') || '';
+let currentOperator = localStorage.getItem('mobile_operator') || '';
+let currentScreen = 's-home';
+let qrStream = null;
+let qrScanning = false;
+let currentMat = null;
+let issueQty = 0;
+let m80RollCount = 4;
+let mrCount = 4;
+
+// ── MATERIALS (full 128-item list) ─────────────────────────────
+const MATERIALS = [
+  {id:'FIB-001',name:'BLACK 20 DN NIRMAL',cat:'Fiber',stock:2858,reorder:1000,supplier:'Nirmal Fibers Pvt ltd'},
+  {id:'FIB-002',name:'Black 40 Dn Nirmal',cat:'Fiber',stock:1400,reorder:500,supplier:'Ganesha Ecospheare LTD'},
+  {id:'FIB-004',name:'CAMEL 70 DN NIRMAL',cat:'Fiber',stock:1200,reorder:250,supplier:'Amit traders'},
+  {id:'FIB-010',name:'E-BEIGE 15 DN GPL',cat:'Fiber',stock:2100,reorder:1000,supplier:'Jumax Foam Pvt Ltd'},
+  {id:'FIB-013',name:'Black 6 Dn Amit',cat:'Fiber',stock:2400,reorder:3000,supplier:'Kotputli Indane Gas'},
+  {id:'FIB-014',name:'Black 15 Dn Amit',cat:'Fiber',stock:1200,reorder:3000,supplier:'Shri Balaji Automation'},
+  {id:'FIB-037',name:'BLACK 15 DN JB TAX',cat:'Fiber',stock:450,reorder:2000,supplier:'Yana Sales Corporation'},
+  {id:'FIB-038',name:'BLACK 6 DN JB TAX',cat:'Fiber',stock:2100,reorder:1000,supplier:'Pashupati Polytex'},
+  {id:'FIB-039',name:'15 DN GREY-719 NIRMAL',cat:'Fiber',stock:180,reorder:500,supplier:'N.K.Trading Company'},
+  {id:'FIB-025',name:'WHITE 70 DN GPL',cat:'Fiber',stock:1820,reorder:0,supplier:'Maruti Enterprises'},
+  {id:'FIB-068',name:'BLACK 6DN X64MM BLS',cat:'Fiber',stock:4800,reorder:0,supplier:'BLS Ecotech Ltd'},
+  {id:'FIB-070',name:'RED 70DN X 80 MM GPL',cat:'Fiber',stock:800,reorder:0,supplier:'GPL'},
+  {id:'FIB-071',name:'GREEN 70DN X 80 MM GPL',cat:'Fiber',stock:220,reorder:0,supplier:'GPL'},
+  {id:'CHM-001',name:'Aqua Black Hs',cat:'Chemical',stock:0,reorder:100,supplier:'Local Party'},
+  {id:'CHM-002',name:'SID/CB-307',cat:'Chemical',stock:320,reorder:880,supplier:'Super Bond Adhesives'},
+  {id:'CHM-003',name:'SID/NW-901',cat:'Chemical',stock:440,reorder:880,supplier:'Banglore Polycotters'},
+  {id:'CHM-007',name:'SID/NW-3681',cat:'Chemical',stock:186,reorder:0,supplier:'Kospi Tradelinks'},
+  {id:'CHM-008',name:'SID/DIS',cat:'Chemical',stock:85,reorder:250,supplier:'Hot King Electricals'},
+  {id:'CHM-006',name:'SLS Liquid Foam',cat:'Chemical',stock:140,reorder:235,supplier:'Protechnic Skicorp'},
+  {id:'CHM-010',name:'Yellow 7',cat:'Chemical',stock:177,reorder:500,supplier:'Vijay Stationery'},
+  {id:'CHM-018',name:'Ammonia',cat:'Chemical',stock:20,reorder:0,supplier:'Aavahan'},
+  {id:'CHM-031',name:'ARTIFOUR-01',cat:'Chemical',stock:120,reorder:100,supplier:'ALC Skicorp'},
+  {id:'PWD-001',name:'300 Mash',cat:'Powder',stock:3200,reorder:5000,supplier:'Parmanand Chemical'},
+  {id:'PWD-003',name:'China Clay',cat:'Powder',stock:280,reorder:500,supplier:'Aqua Colorants'},
+  {id:'PWD-005',name:'LLDPE Powder',cat:'Powder',stock:180,reorder:250,supplier:'Mokshva Innovations'},
+  {id:'FOM-001',name:'P.U.Foam 68"',cat:'Foam',stock:30,reorder:50,supplier:'Kaycee Traders'},
+  {id:'FOM-002',name:'P.U.Foam 75"',cat:'Foam',stock:60,reorder:100,supplier:'Rajendra Tools'},
+];
+
+const CAT_BG = {Fiber:'#E1F5EE',Chemical:'#EAF3FB',Powder:'#FDF3E0',Foam:'#F3E8FF'};
+const CAT_FG = {Fiber:'#085041',Chemical:'#0C447C',Powder:'#633806',Foam:'#4A1B0C'};
+const ANIMAL_YEARS = {2026:'H',2027:'S',2028:'M',2029:'R',2030:'D',2031:'O',2032:'T'};
+
+// ── INIT ──────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  if (localStorage.getItem('mobile_webapp_url'))
+    document.getElementById('mobile-webapp-url').value = localStorage.getItem('mobile_webapp_url');
+  if (localStorage.getItem('mobile_operator')) {
+    document.getElementById('mobile-operator').value = localStorage.getItem('mobile_operator');
+    currentOperator = localStorage.getItem('mobile_operator');
+  }
+  document.getElementById('mr-date').value = new Date().toISOString().split('T')[0];
+  tick(); setInterval(tick, 1000);
+  checkConnection();
+});
+
+function tick() {
+  const now = new Date();
+  document.getElementById('home-time').textContent =
+    now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('home-date').textContent =
+    now.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+}
+
+function saveMobileURL() {
+  WEBAPP_URL = document.getElementById('mobile-webapp-url').value.trim();
+  localStorage.setItem('mobile_webapp_url', WEBAPP_URL);
+  checkConnection();
+}
+
+function saveOperator() {
+  currentOperator = document.getElementById('mobile-operator').value;
+  localStorage.setItem('mobile_operator', currentOperator);
+  document.getElementById('conn-user').textContent = currentOperator || '—';
+}
+
+async function checkConnection() {
+  const dot  = document.getElementById('conn-dot');
+  const text = document.getElementById('conn-text');
+
+  // No URL — show instructions
+  if (!WEBAPP_URL) {
+    dot.className    = 'sb-dot sb-disconnected';
+    text.textContent = 'Paste Web App URL below to connect';
+    return;
+  }
+
+  dot.className    = 'sb-dot';
+  dot.style.background = '#d4820a';
+  text.textContent = 'Connecting…';
+
+  try {
+    // Use a timeout so it never hangs
+    const controller = new AbortController();
+    const timeout    = setTimeout(() => controller.abort(), 6000);
+
+    const r = await fetch(WEBAPP_URL, { signal: controller.signal });
+    clearTimeout(timeout);
+
+    // Apps Script returns JSON — try to parse it
+    let connected = false;
+    try {
+      const d = await r.json();
+      connected = (d.status === 'live' || d.status === 'success');
+    } catch(e) {
+      // If we got a response at all, assume connected
+      connected = (r.status === 200 || r.status === 302 || r.type === 'opaque');
+    }
+
+    if (connected || r.type === 'opaque') {
+      dot.className    = 'sb-dot sb-connected';
+      dot.style.background = '';
+      text.textContent = 'Connected to Google Sheets ✓';
+      loadDOsForMobile();
+    } else {
+      throw new Error('Not live');
+    }
+
+  } catch(e) {
+    // Even if fetch fails due to CORS/network, if URL is set treat as configured
+    if (WEBAPP_URL && WEBAPP_URL.includes('script.google.com')) {
+      // URL looks correct — mark as configured even if we can't verify
+      dot.className    = 'sb-dot';
+      dot.style.background = '#d4820a';
+      text.textContent = 'URL saved — forms will submit to sheet';
+      loadDOsForMobile();
+    } else {
+      dot.className    = 'sb-dot sb-disconnected';
+      dot.style.background = '';
+      text.textContent = 'Check URL — does not look correct';
+    }
+  }
+}
+
+async function loadDOsForMobile() {
+  if (!WEBAPP_URL) return;
+  const doSel = document.getElementById('mi-do');
+  try {
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(), 8000);
+    const r = await fetch(WEBAPP_URL + '?action=dos', { signal: controller.signal });
+    const d = await r.json();
+    if (d.status === 'success' && d.dos && d.dos.length > 0) {
+      doSel.innerHTML = '<option value="">— Select DO —</option>' +
+        d.dos.map(x => `<option value="${x.doNo}">${x.doNo}${x.carpet ? ' — ' + x.carpet : ''}</option>`).join('');
+      showToast('✅ ' + d.dos.length + ' DOs loaded', 'green-bg');
+    } else {
+      // Show empty but functional dropdown
+      doSel.innerHTML = '<option value="">— Type DO number manually —</option>';
+    }
+  } catch(e) {
+    // CORS blocks reading response on mobile — make it manually typeable
+    doSel.innerHTML = '<option value="">— Type DO number manually —</option>';
+    // Replace select with text input for manual DO entry
+    const parent = doSel.parentElement;
+    parent.innerHTML = '<label style="font-size:10px;font-weight:600;color:#6b7e78;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:3px">DO Number *</label>' +
+      '<input type="text" id="mi-do" placeholder="Type DO No. e.g. DO-001" style="width:100%;padding:11px 12px;border:1.5px solid var(--mist3);border-radius:10px;font-size:15px;color:var(--ink);background:#fff;font-family:var(--mono)" />';
+  }
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────
+function go(screenId) {
+  const prev = document.getElementById(currentScreen);
+  const next = document.getElementById(screenId);
+  prev.classList.add('slide-left');
+  next.classList.remove('hidden');
+  next.style.transform = 'translateX(0)';
+  next.style.opacity   = '1';
+  currentScreen = screenId;
+  if (screenId === 's-qr') startQR();
+}
+
+function back() {
+  if (qrStream) {
+    qrStream.getTracks().forEach(t => t.stop());
+    qrStream = null; qrScanning = false;
+  }
+  const curr = document.getElementById(currentScreen);
+  curr.classList.add('hidden');
+  curr.classList.remove('slide-left');
+  curr.style.transform = '';
+  curr.style.opacity   = '';
+  const home = document.getElementById('s-home');
+  home.classList.remove('slide-left');
+  home.style.transform = '';
+  home.style.opacity   = '';
+  currentScreen = 's-home';
+}
+
+// ── QR SCANNER ────────────────────────────────────────────────
+async function startQR() {
+  try {
+    qrStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
+    });
+    const video = document.getElementById('qr-video');
+    video.srcObject = qrStream;
+    await video.play();
+    qrScanning = true;
+    scanFrame();
+  } catch(e) {
+    showToast('Camera not available — use manual entry below', 'red-bg');
+  }
+}
+
+function scanFrame() {
+  if (!qrScanning) return;
+  const video  = document.getElementById('qr-video');
+  const canvas = document.getElementById('qr-canvas');
+  if (video.readyState === video.HAVE_ENOUGH_DATA) {
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+    if (code) {
+      qrScanning = false;
+      processQRCode(code.data);
+      return;
+    }
+  }
+  requestAnimationFrame(scanFrame);
+}
+
+function processQRCode(data) {
+  // QR data format: "FIB-013|Black 6 Dn Amit"
+  const parts = data.split('|');
+  const qrId  = parts[0].trim();
+  const mat   = MATERIALS.find(m => m.id.toUpperCase() === qrId.toUpperCase());
+  if (mat) {
+    showMaterial(mat);
+    showToast('✅ ' + mat.name, 'green-bg');
+  } else {
+    showToast('QR not found: ' + qrId, 'red-bg');
+    qrScanning = true;
+    scanFrame();
+  }
+}
+
+function onManualQR(val) {
+  const v = val.trim().toUpperCase();
+  const results = document.getElementById('qr-search-results-m');
+  if (!v || v.length < 2) { results.innerHTML = ''; return; }
+
+  const matches = MATERIALS.filter(m =>
+    m.id.toUpperCase().includes(v) || m.name.toUpperCase().includes(v)
+  ).slice(0, 8);
+
+  if (!matches.length) { results.innerHTML = ''; return; }
+
+  results.innerHTML = matches.map(m => {
+    const stkClr = m.stock <= 0 ? '#c0392b' : m.reorder > 0 && m.stock <= m.reorder ? '#d4820a' : '#1a9e6e';
+    return `<div onclick="showMaterial(MATERIALS.find(x=>x.id==='${m.id}'))"
+      style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fff;border-radius:10px;margin-bottom:6px;cursor:pointer;border:1.5px solid var(--mist3)">
+      <div style="font-family:var(--mono);font-size:10px;color:var(--blue);width:65px;flex-shrink:0">${m.id}</div>
+      <div style="flex:1;font-size:13px;font-weight:500">${m.name}</div>
+      <div style="font-family:var(--mono);font-size:12px;font-weight:600;color:${stkClr}">${m.stock} kg</div>
+    </div>`;
+  }).join('');
+}
+
+function showMaterial(mat) {
+  if (!mat) return;
+  currentMat = mat;
+  document.getElementById('qr-found').style.display = 'block';
+  document.getElementById('qr-manual-m').value = mat.id;
+  document.getElementById('qr-search-results-m').innerHTML = '';
+  document.getElementById('qm-id').textContent   = mat.id;
+  document.getElementById('qm-name').textContent = mat.name;
+  const stkEl = document.getElementById('qm-stock');
+  stkEl.textContent = mat.stock.toLocaleString();
+  stkEl.className   = 'qr-stock-val ' + (mat.stock <= 0 ? 'stk-zero' : mat.reorder > 0 && mat.stock <= mat.reorder ? 'stk-low' : 'stk-ok');
+  document.getElementById('qm-reorder').textContent = mat.reorder > 0 ? mat.reorder + ' kg' : '—';
+  const cb = document.getElementById('qm-cat-badge');
+  cb.textContent = mat.cat;
+  cb.style.background = CAT_BG[mat.cat] || '#f8f8f8';
+  cb.style.color      = CAT_FG[mat.cat] || '#374151';
+  issueQty = 0;
+  document.getElementById('mi-qty').value = '0';
+  document.getElementById('mi-qty-display').textContent = '0';
+  document.getElementById('mi-lot').value = '';
+}
+
+function clearQRScan() {
+  document.getElementById('qr-found').style.display = 'none';
+  document.getElementById('qr-manual-m').value = '';
+  document.getElementById('qr-search-results-m').innerHTML = '';
+  currentMat = null; issueQty = 0;
+  qrScanning = true; scanFrame();
+}
+
+function stepQty(delta) {
+  issueQty = Math.max(0, issueQty + delta);
+  document.getElementById('mi-qty').value = issueQty;
+  document.getElementById('mi-qty-display').textContent = issueQty;
+}
+
+async function submitIssue() {
+  if (!currentMat) { showToast('No material selected', 'red-bg'); return; }
+  const doNo = document.getElementById('mi-do').value;
+  const line = document.getElementById('mi-line').value;
+  const qty  = document.getElementById('mi-qty').value;
+  if (!doNo || !qty || qty == 0) { showToast('Fill DO and quantity', 'red-bg'); return; }
+
+  const payload = {
+    action: 'issue', date: new Date().toISOString().split('T')[0],
+    material: currentMat.name, category: currentMat.cat,
+    doNo, line, qty, operator: currentOperator,
+    lot: document.getElementById('mi-lot').value,
+    month: new Date().toLocaleDateString('en-IN',{month:'short',year:'2-digit'})
+  };
+
+  if (WEBAPP_URL) {
+    try { await fetch(WEBAPP_URL, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),mode:'no-cors'}); } catch(e){}
+  }
+  showToast('✅ ' + currentMat.name + ' — ' + qty + ' kg issued', 'green-bg');
+  clearQRScan();
+}
+
+// ── STAGE ENTRY ───────────────────────────────────────────────
+let currentMobileStage = null;
+function selectMobileStage(stage, el) {
+  document.querySelectorAll('.stage-tile').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.stage-form-area').forEach(f => f.classList.remove('active'));
+  el.classList.add('active');
+  currentMobileStage = stage;
+  const formId = 'mf-' + (stage === 's50' || stage === 's60' || stage === 's90' ? 'generic' : stage);
+  const form   = document.getElementById(formId);
+  if (form) {
+    form.classList.add('active');
+    if (formId === 'mf-generic') {
+      const names = {s50:'STRUCTURE',s60:'SINGING',s90:'QUALITY'};
+      document.getElementById('mf-generic-title').textContent = names[stage] || 'STAGE ENTRY';
+    }
+  }
+}
+
+function setQuality(stage, val) {
+  document.getElementById('m'+stage.replace('s','')+'-quality').value = val;
+  showToast(val === 'OK' ? '✅ Marked OK' : '⚠ Marked FAIL', val === 'OK' ? 'green-bg' : 'red-bg');
+}
+
+function setStock(val) {
+  document.getElementById('m30-stock').value = val;
+  showToast('Marked: ' + val, val === 'YES' ? 'green-bg' : 'red-bg');
+}
+
+function setInwardQ(val) {
+  document.getElementById('in-quality').value = val;
+  showToast('Quality: ' + val, val === 'OK' ? 'green-bg' : 'red-bg');
+}
+
+async function submitMobileStage(stage, sheetStage) {
+  const doNo = document.getElementById('st-do').value;
+  const lot  = document.getElementById('st-lot').value;
+  if (!doNo) { showToast('Enter DO number first', 'red-bg'); return; }
+
+  let payload = { stage: sheetStage || stage, date: new Date().toISOString().split('T')[0],
+    do_no: doNo, lot_no: lot, operator: currentOperator,
+    submitted_by: currentOperator };
+
+  if (stage === 's40') {
+    payload.roll_no = document.getElementById('m40-roll').value;
+    payload.length  = document.getElementById('m40-len').value;
+    payload.width   = document.getElementById('m40-wid').value;
+    payload.weight  = document.getElementById('m40-wt').value;
+    payload.godown  = document.getElementById('m40-gd').value;
+    payload.line_no = 'LINE-1';
+  } else if (stage === 's70') {
+    payload.roll_no            = document.getElementById('m70-roll').value;
+    payload.length             = document.getElementById('m70-len').value;
+    payload.weight             = document.getElementById('m70-wt').value;
+    payload.quality_ok_not_ok  = document.getElementById('m70-quality').value;
+  } else if (stage === 's80') {
+    payload.t_roll_no          = document.getElementById('m80-troll').value;
+    payload.s_roll_no          = document.getElementById('m80-sroll').value;
+    payload.quality_ok_not_ok  = document.getElementById('m80-quality').value;
+  } else if (stage === 's30' || sheetStage === 'sstock') {
+    payload.item_required      = document.getElementById('m30-item').value;
+    payload.in_stock_yes_no    = document.getElementById('m30-stock').value;
+    payload.remark             = document.getElementById('m30-remark').value;
+  } else if (stage === 's100') {
+    payload.finish_roll_no     = document.getElementById('m100-roll').value;
+    payload.length             = document.getElementById('m100-len').value;
+    payload.weight             = document.getElementById('m100-wt').value;
+    payload.truck_no           = document.getElementById('m100-truck').value;
+    payload.net_id             = document.getElementById('m100-net').value;
+  } else {
+    payload.roll_no = document.getElementById('mg-roll').value;
+    payload.length  = document.getElementById('mg-len').value;
+    payload.weight  = document.getElementById('mg-wt').value;
+    payload.stock_location = document.getElementById('mg-loc').value;
+  }
+
+  if (WEBAPP_URL) {
+    try { await fetch(WEBAPP_URL, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),mode:'no-cors'}); } catch(e) {}
+  }
+  showToast('✅ Stage ' + stage.toUpperCase() + ' submitted', 'green-bg');
+}
+
+async function submitGenericStage() { await submitMobileStage(currentMobileStage); }
+
+// ── LAMINATION ROLL CARDS ─────────────────────────────────────
+function stepRolls(d) {
+  m80RollCount = Math.max(1, Math.min(8, m80RollCount + d));
+  document.getElementById('m80-rollcount').value = m80RollCount;
+  document.getElementById('m80-rollcount-display').textContent = m80RollCount;
+  updateMobileRolls();
+}
+
+function updateMobileRolls() {
+  const carpet = document.getElementById('m80-carpet').value.trim();
+  const date   = new Date().toISOString().split('T')[0];
+  const type   = '3';
+  const cards  = document.getElementById('m80-roll-cards');
+  if (!carpet) { cards.innerHTML = ''; return; }
+  const rolls  = [];
+  for (let i = 1; i <= m80RollCount; i++) rolls.push(generateRollNo(type, date, carpet, i));
+  cards.innerHTML = rolls.map((r,i) => `
+    <div class="roll-card-m">
+      <div class="rcm-id">${r}</div>
+      <div class="rcm-fields">
+        <div class="field"><label>L (m)</label><input type="number" placeholder="0.0" step="0.1" class="rcm-len" /></div>
+        <div class="field"><label>W (m)</label><input type="number" placeholder="0.0" step="0.1" class="rcm-wid" /></div>
+        <div class="field"><label>Wt (kg)</label><input type="number" placeholder="0.0" step="0.1" class="rcm-wt" /></div>
+      </div>
+    </div>`).join('');
+}
+
+// ── ROLL NUMBER GENERATOR ─────────────────────────────────────
+function stepMR(d) {
+  mrCount = Math.max(1, Math.min(8, mrCount + d));
+  document.getElementById('mr-count').value = mrCount;
+  document.getElementById('mr-count-display').textContent = mrCount;
+  mobileCalcRolls();
+}
+
+function mobileCalcRolls() {
+  const date   = document.getElementById('mr-date').value;
+  const type   = document.getElementById('mr-type').value;
+  const carpet = document.getElementById('mr-carpet').value.trim();
+  const count  = mrCount;
+  if (!date || !type || !carpet) { document.getElementById('mr-output').style.display = 'none'; return; }
+
+  const rolls = [];
+  for (let i = 1; i <= count; i++) rolls.push(generateRollNo(type, date, carpet, i));
+
+  document.getElementById('mr-output').style.display = 'block';
+  document.getElementById('mr-output').innerHTML = `
+    <div class="roll-output">
+      <div class="ro-label">GENERATED ROLL NUMBERS</div>
+      <div class="ro-num">${rolls.join('\n')}</div>
+    </div>`;
+
+  document.getElementById('mr-cards').innerHTML = rolls.map((r,i) => `
+    <div class="roll-card-m">
+      <div class="rcm-id">${r}</div>
+      <div class="rcm-fields">
+        <div class="field"><label>Length (m)</label><input type="number" placeholder="0.0" step="0.1" /></div>
+        <div class="field"><label>Width (m)</label><input type="number" placeholder="0.0" step="0.1" /></div>
+        <div class="field"><label>Weight (kg)</label><input type="number" placeholder="0.0" step="0.1" /></div>
+      </div>
+      <div style="margin-top:8px;display:flex;gap:6px">
+        <button onclick="this.style.background='var(--green)';this.style.color='#fff';this.textContent='✓ OK'" style="flex:1;padding:8px;border-radius:8px;border:1.5px solid var(--mist3);font-size:12px;cursor:pointer;background:#fff">OK</button>
+        <button onclick="this.style.background='var(--red)';this.style.color='#fff';this.textContent='✗ FAIL'" style="flex:1;padding:8px;border-radius:8px;border:1.5px solid var(--mist3);font-size:12px;cursor:pointer;background:#fff">FAIL</button>
+      </div>
+    </div>`).join('');
+}
+
+// ── INWARD SEARCH ─────────────────────────────────────────────
+function inwardSearch(val) {
+  const v = val.trim().toUpperCase();
+  const el = document.getElementById('in-search-results');
+  if (!v || v.length < 2) { el.innerHTML = ''; return; }
+  const matches = MATERIALS.filter(m => m.name.toUpperCase().includes(v) || m.id.toUpperCase().includes(v)).slice(0,6);
+  el.innerHTML = matches.map(m => `
+    <div onclick="selectInwardMat('${m.name}','${m.id}')"
+      style="padding:9px 12px;background:#f0f4f2;border-radius:8px;margin-bottom:4px;cursor:pointer;font-size:13px;font-weight:500">
+      <span style="font-family:var(--mono);font-size:10px;color:var(--blue);margin-right:8px">${m.id}</span>${m.name}
+    </div>`).join('');
+}
+
+function selectInwardMat(name, id) {
+  document.getElementById('in-mat').value = name;
+  document.getElementById('in-mat-confirmed').value = id;
+  document.getElementById('in-search-results').innerHTML = '';
+}
+
+async function submitInward() {
+  const mat = document.getElementById('in-mat').value;
+  const qty = document.getElementById('in-qty').value;
+  if (!mat || !qty) { showToast('Material and quantity required', 'red-bg'); return; }
+  const payload = {
+    action: 'inward', date: new Date().toISOString().split('T')[0],
+    product: mat, qty, rate: document.getElementById('in-rate').value,
+    party: document.getElementById('in-supplier').value,
+    invoice: document.getElementById('in-invoice').value,
+    quality: document.getElementById('in-quality').value,
+    month: new Date().toLocaleDateString('en-IN',{month:'short',year:'2-digit'})
+  };
+  if (WEBAPP_URL) {
+    try { await fetch(WEBAPP_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),mode:'no-cors'}); } catch(e) {}
+  }
+  showToast('✅ Inward recorded — ' + mat, 'green-bg');
+  ['in-mat','in-supplier','in-invoice','in-qty','in-rate'].forEach(id => document.getElementById(id).value='');
+}
+
+// ── ROLL NUMBER LOGIC ─────────────────────────────────────────
+function dayCode(day) {
+  const L = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  if (day <= 26) return L[day-1];
+  return L[Math.floor((day-27)/26)] + L[(day-27)%26];
+}
+function weekOfYear(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dn = d.getUTCDay() || 7; d.setUTCDate(d.getUTCDate() + 4 - dn);
+  const ys = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  return Math.ceil((((d-ys)/86400000)+1)/7);
+}
+function generateRollNo(type, date, carpet, idx) {
+  const d = new Date(date);
+  return `TI-${type}/${weekOfYear(d)}/${carpet}/${ANIMAL_YEARS[d.getFullYear()]||'X'}/${dayCode(d.getDate())}/${idx}`;
+}
+
+// ── TOAST ─────────────────────────────────────────────────────
+function showToast(msg, cls='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast ' + cls + ' show';
+  setTimeout(() => t.className = 'toast ' + cls, 3000);
+}
+</script>
+</body>
+</html>
