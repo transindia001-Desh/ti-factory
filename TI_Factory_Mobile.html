@@ -9,8 +9,8 @@
 <meta name="theme-color" content="#0a0f0d"/>
 <title>TI Factory — Floor App</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Barlow+Condensed:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
-<!-- QR Scanner library -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<!-- QR Scanner - using BarcodeDetector API (built into modern Android Chrome) -->
+<!-- Fallback to manual entry if not supported -->
 <style>
 :root{
   --ink:#0a0f0d; --ink2:#1c2420;
@@ -792,37 +792,79 @@ function back() {
 
 // ── QR SCANNER ────────────────────────────────────────────────
 async function startQR() {
+  const video    = document.getElementById('qr-video');
+  const errorArea= document.getElementById('qr-result-area');
+
+  // Check if BarcodeDetector is available (built into Android Chrome 83+)
+  const hasBarcodeDetector = 'BarcodeDetector' in window;
+
   try {
+    // Request camera
     qrStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
+      video: {
+        facingMode: { ideal: 'environment' }, // back camera
+        width:  { ideal: 1280 },
+        height: { ideal: 720 }
+      }
     });
-    const video = document.getElementById('qr-video');
+
     video.srcObject = qrStream;
     await video.play();
     qrScanning = true;
-    scanFrame();
-  } catch(e) {
-    showToast('Camera not available — use manual entry below', 'red-bg');
+
+    if (hasBarcodeDetector) {
+      // Use native BarcodeDetector — works without any library
+      const detector = new BarcodeDetector({ formats: ['qr_code'] });
+      scanWithDetector(detector, video);
+      showToast('📷 Camera ready — point at QR label', 'green-bg');
+    } else {
+      // BarcodeDetector not available — show manual entry prominently
+      showToast('📷 Camera open — type code manually below', '');
+      const hint = document.createElement('div');
+      hint.style.cssText = 'background:#fdf3e0;border-radius:12px;padding:12px 14px;margin-bottom:10px;font-size:13px;color:#633806;line-height:1.6';
+      hint.innerHTML = '⚡ <strong>Auto-scan not supported on this phone.</strong><br>Type the QR ID from the label below (e.g. FIB-013) and tap →';
+      errorArea.insertBefore(hint, errorArea.firstChild);
+    }
+
+  } catch(err) {
+    // Camera permission denied or not available
+    qrStream = null; qrScanning = false;
+
+    const msg = document.createElement('div');
+    msg.style.cssText = 'background:#fdecea;border-radius:12px;padding:14px;margin-bottom:10px;font-size:13px;color:#922b21;line-height:1.8';
+
+    if (err.name === 'NotAllowedError') {
+      msg.innerHTML = '🔒 <strong>Camera permission denied.</strong><br><br>' +
+        '1. Tap the 🔒 lock icon in Chrome address bar<br>' +
+        '2. Tap <strong>Camera → Allow</strong><br>' +
+        '3. Refresh this page<br><br>' +
+        'Or use the manual entry below — type the code from the label.';
+    } else if (err.name === 'NotFoundError') {
+      msg.innerHTML = '📷 <strong>No camera found.</strong><br>Use manual entry below — type the QR code ID printed on the label.';
+    } else {
+      msg.innerHTML = '⚠️ <strong>Camera error: ' + err.message + '</strong><br>Use manual entry below.';
+    }
+    errorArea.insertBefore(msg, errorArea.firstChild);
   }
 }
 
-function scanFrame() {
+async function scanWithDetector(detector, video) {
   if (!qrScanning) return;
-  const video  = document.getElementById('qr-video');
-  const canvas = document.getElementById('qr-canvas');
-  if (video.readyState === video.HAVE_ENOUGH_DATA) {
-    canvas.width  = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
-    if (code) {
+  try {
+    const codes = await detector.detect(video);
+    if (codes.length > 0) {
       qrScanning = false;
-      processQRCode(code.data);
+      processQRCode(codes[0].rawValue);
       return;
     }
-  }
+  } catch(e) {}
+  // Keep scanning every 300ms
+  setTimeout(() => scanWithDetector(detector, video), 300);
+}
+
+function scanFrame() {
+  // Legacy fallback — kept for compatibility but replaced by scanWithDetector
+  if (!qrScanning) return;
   requestAnimationFrame(scanFrame);
 }
 
@@ -890,7 +932,17 @@ function clearQRScan() {
   document.getElementById('qr-manual-m').value = '';
   document.getElementById('qr-search-results-m').innerHTML = '';
   currentMat = null; issueQty = 0;
-  qrScanning = true; scanFrame();
+  // Restart scanning
+  qrScanning = true;
+  const video = document.getElementById('qr-video');
+  if (video.srcObject) {
+    if ('BarcodeDetector' in window) {
+      const detector = new BarcodeDetector({ formats: ['qr_code'] });
+      scanWithDetector(detector, video);
+    }
+  } else {
+    startQR();
+  }
 }
 
 function stepQty(delta) {
